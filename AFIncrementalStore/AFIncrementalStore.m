@@ -667,7 +667,15 @@ withAttributeAndRelationshipValuesFromManagedObject:(NSManagedObject *)managedOb
     fetchRequest.resultType = NSDictionaryResultType;
     fetchRequest.fetchLimit = 1;
     fetchRequest.includesSubentities = NO;
-    fetchRequest.propertiesToFetch = [[[[NSEntityDescription entityForName:fetchRequest.entityName inManagedObjectContext:context] attributesByName] allKeys] arrayByAddingObject:kAFIncrementalStoreLastModifiedAttributeName];
+
+    NSDictionary *attributesByName = [[NSEntityDescription entityForName:fetchRequest.entityName inManagedObjectContext:context] attributesByName];
+
+    // Do not try to fetch transient properties
+    NSSet *propertiesToFetch = [attributesByName keysOfEntriesPassingTest:^BOOL(id key, id obj, BOOL *stop) {
+        return ![obj isTransient];
+    }];
+
+    fetchRequest.propertiesToFetch = [[propertiesToFetch allObjects] arrayByAddingObject: kAFIncrementalStoreLastModifiedAttributeName];
     fetchRequest.predicate = [NSPredicate predicateWithFormat:@"%K = %@", kAFIncrementalStoreResourceIdentifierAttributeName, AFResourceIdentifierFromReferenceObject([self referenceObjectForObjectID:objectID])];
     
     __block NSArray *results;
